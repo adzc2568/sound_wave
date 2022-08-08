@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>SOUNDWAVE</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/all.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.10/vue.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/5.2.0/pixi.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pixi-filters@3.0.3/dist/pixi-filters.js"></script>
+</head>
+
+<body>
+  <div>
+    <audio id="audio" controls>
+      <source src="./music/On_My_Way_Home.mp3" type="audio/mp3">
+    </audio>
+  </div>
+
+
+
+  <script>
+    const audio = document.querySelector('#audio')
+
+    const app = new PIXI.Application({
+      width: window.innerWidth <= 1320 ? window.innerWidth : (window.innerWidth - 600),
+      height: window.innerHeight,
+      transparent: true,
+      antialias: true,
+    });
+    window.addEventListener('resize', () => {
+      app.renderer.resize(window.innerWidth <= 1320 ? window.innerWidth : (window.innerWidth - 600), innerHeight);
+      h = app.renderer.height;
+      w = app.renderer.width;
+    })
+
+    const sprites = new PIXI.Container();
+    const items = [
+      'apple',
+      'banana',
+      'banner',
+      'bunny',
+      'cloud',
+      'crown',
+      'diamond',
+      'fish',
+      'flower',
+      'heart',
+      'lightning',
+      'note',
+      'radio',
+      'rock',
+      'skull',
+      'star',
+      'sunglasses',
+      'snowflake',
+      'taiwan',
+      'vue',
+      'weeds',
+    ]
+    const spritesArr = new Array();
+    const direction = new Array();
+
+    const graphics01 = new PIXI.Graphics();
+    const graphics02 = new PIXI.Graphics();
+    const graphics03 = new PIXI.Graphics();
+    const graphics04 = new PIXI.Graphics();
+    const graphics05 = new PIXI.Graphics();
+    const graphics_fill = new PIXI.Graphics();
+
+    let h = app.renderer.height;
+    let w = app.renderer.width;
+    const volume = audio.volume * 10;
+
+    app.stage.addChild(sprites, graphics_fill, graphics01, graphics02, graphics03, graphics04, graphics05);
+
+    document.body.appendChild(app.view);
+
+    let playStatus = false
+
+    let context = null
+    let source = null
+    let analyser = null
+    const play = () => {
+      playStatus = true
+      audio.play()
+
+      if (context === null) {
+        context = new AudioContext()
+        analyser = context.createAnalyser();
+
+      }
+
+      analyser.fftSize = 4096;
+
+      if (source === null) {
+        source = context.createMediaElementSource(audio);
+        source.connect(analyser);
+      }
+      analyser.connect(context.destination);
+      const frequency_array = new Float32Array(analyser.frequencyBinCount); //音頻取值
+
+      const waveLooper = () => {
+        if (playStatus) {
+          analyser.getFloatFrequencyData(frequency_array);
+
+          // 小物件設定
+          direction.push(Math.PI * (Math.random() * 3)); // 小物件移動的方向
+          let itemsRandom = parseInt(Math.random() * items.length)
+          sprite = PIXI.Sprite.from(`./img/items/${items[itemsRandom]}.png`)
+
+          if (spritesArr.length <= w / 2) {
+            sprite.x = Math.random() * w + 1;
+            sprite.y = h / 2;
+            sprite.rotation = (Math.random() * 360) * (Math.PI / 180);
+            sprite.anchor.set(0.5);
+            spritesArr.push(sprite)
+            sprites.addChild(sprite)
+          }
+
+          graphics01.clear(0, 0, w, h);
+          graphics02.clear(0, 0, w, h);
+          graphics03.clear(0, 0, w, h);
+          graphics04.clear(0, 0, w, h);
+          graphics05.clear(0, 0, w, h);
+          graphics_fill.clear(0, 0, w, h);
+
+          graphics01.lineStyle(1, 0xF6F63D);
+          graphics02.lineStyle(1, 0xF5C900);
+          graphics03.lineStyle(1, 0xFFD700);
+          graphics04.lineStyle(1, 0xF5C900);
+          graphics05.lineStyle(1, 0xF6F63D);
+
+          // 減少不同音量大小下音頻值的差距
+          const max = (Math.max.apply(null, frequency_array) - volume) + 100;
+          const max_rate = ((0.9 - ((1 - audio.volume) / 9) * 3) / max) * 150; // (0.9 - ((1 - audio.volume) / 9) * 3) => 調整不同音量大小下視覺化的最大高度 ,150% => 最大高度
+
+          graphics_fill.beginFill(0xF6F63D, 0.5)
+          graphics_fill.moveTo(0, h / 2)
+
+          for (let i = 0; i <= w; i++) {
+            frequency_array[i] = (frequency_array[i] - volume) + 100 <= 0 ? h / 2 : h / 2 - ((frequency_array[i] - volume) + 100) * max_rate;
+            if (i == 0) {
+              graphics01.moveTo((2 * i), frequency_array[i] - 8);
+              graphics02.moveTo((2 * i), frequency_array[i] - 6);
+              graphics03.moveTo((2 * i), frequency_array[i] - 4);
+              graphics04.moveTo((2 * i), frequency_array[i] - 2);
+              graphics05.moveTo((2 * i), frequency_array[i]);
+              graphics_fill.lineTo((2 * i), frequency_array[i] - 8);
+            } else {
+              graphics01.lineTo((2 * i), frequency_array[i] - 8);
+              graphics02.lineTo((2 * i), frequency_array[i] - 6);
+              graphics03.lineTo((2 * i), frequency_array[i] - 4);
+              graphics04.lineTo((2 * i), frequency_array[i] - 2);
+              graphics05.lineTo((2 * i), frequency_array[i]);
+              graphics_fill.lineTo((2 * i), frequency_array[i] - 8);
+            }
+          }
+
+          graphics_fill.lineTo((2 * w), h / 2)
+          graphics_fill.closePath()
+
+          for (let i = 0; i < spritesArr.length; i++) {
+            const sprite = spritesArr[i];
+            sprite.x -= 1 * Math.cos(direction[i] + Math.random());
+            sprite.y -= 1 * Math.sin(direction[i] + Math.random());
+            sprite.rotation += 0.1;
+            sprite.alpha -= 0.004;
+            if (sprite.y <= h / 2 - 400) {
+              sprites.removeChild(sprite);
+              spritesArr.splice(i, 1);
+              direction.splice(i, 1);
+            } else if (sprite.y >= h / 2 + 400) {
+              sprites.removeChild(sprite);
+              spritesArr.splice(i, 1);
+              direction.splice(i, 1);
+            }
+          }
+
+          window.requestAnimationFrame(waveLooper);
+        } else {
+          sprites.removeChildren()
+          graphics01.clear(0, 0, w, h);
+          graphics02.clear(0, 0, w, h);
+          graphics03.clear(0, 0, w, h);
+          graphics04.clear(0, 0, w, h);
+          graphics05.clear(0, 0, w, h);
+          graphics_fill.clear(0, 0, w, h);
+          waveLooperSwitch = false;
+          return;
+        }
+      }
+
+      waveLooper()
+    }
+
+    audio.onplay = play
+    audio.onpause = () => {
+      playStatus = false
+    }
+
+  </script>
+</body>
+
+</html>
